@@ -1,14 +1,12 @@
-#!/usr/bin/python
-
 import pickle
 import sys
 
 import matplotlib.pyplot as plt
 import pandas as pd
 
-sys.path.append("../tools/")
-# sys.path.append("../dataset/")
-sys.path.append("../data_wrangling/")
+sys.path.append("tools/")
+sys.path.append("dataset/")
+sys.path.append("data_wrangling/")
 
 #print(sys.path)
 
@@ -25,7 +23,7 @@ from tester import dump_classifier_and_data
 ### Load the dictionary containing the dataset
 data_dict = {}
 
-dataset_file = "../dataset/final_project_dataset.pkl"
+dataset_file = "dataset/final_project_dataset.pkl"
 with open(dataset_file, "br") as data_file:
     data_dict = pickle.load(data_file)
 
@@ -100,7 +98,7 @@ featureList, nameList = getFormattedFeaturesAndNameList(data_dict, features_list
 
 
 # selected_features = list(set(featureList) - set(nan_features))
-suspected_outliers = eobj.findSuspectedOutliers(featureList)
+# suspected_outliers = eobj.findSuspectedOutliers(featureList)
 
 ### Task 2: Remove outliers
 
