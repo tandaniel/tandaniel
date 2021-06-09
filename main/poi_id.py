@@ -131,7 +131,7 @@ df_features_nan_counts['ratio'] = df_features_nan_counts['NaN count']/max_nan_co
 print(df_features_nan_counts.to_string(index=False))
 
 #--- list features with more than selected percentage (%) NaNs:
-thresh_ratio = 0.4
+thresh_ratio = 0.7
 rslt_df = df_features_nan_counts.loc[df_features_nan_counts['ratio'] > thresh_ratio]
 nan_features = rslt_df['Feature'].tolist()
 print('\nFeatures with NaN > {} % will be excluded:'.format(thresh_ratio*100.0))
@@ -159,17 +159,24 @@ df_employee_nan_counts.sort_values(by=['NaN count'], inplace=True)
 df_employee_nan_counts.reset_index(drop=True, inplace=True)
 print(df_employee_nan_counts)
 
-print('\nThe following employees have more than 90% NaN entries and will be ignored if non-POI:')
 empl_to_pop = df_employee_nan_counts.loc[df_employee_nan_counts['NaN %'] >90. , 'Name'].tolist()
-print(empl_to_pop)
+
+size_empl_to_pop = len(empl_to_pop)
+
+if size_empl_to_pop > 1:
+    print('\nThe following employees have more than 90% NaN entries and will be ignored if non-POI:')
+    print(empl_to_pop)
+elif size_empl_to_pop == 1:
+    print('\nThe following employee has more than 90% NaN entries and will be ignored if non-POI:')
+    print(empl_to_pop[0])
+else:
+    pass
 
 poi_list = eobj.get_poi_list()
 
 for empl in empl_to_pop:
     if empl not in poi_list:
         data_dict.pop(empl, 0 )
-
-
 
 
 ### Task 2: Remove outliers
@@ -199,14 +206,12 @@ def show_data(title, features):
     plt.ylabel(features[2].capitalize() )
     plt.show()
 
-show_data('All points', plot_features)
+# show_data('All points', plot_features)
 
 #--- remove 'TOTAL' point:
 data_dict.pop( 'TOTAL', 0 ) 
 
-show_data('"TOTAL" entry removed', plot_features)
-
-
+# show_data('"TOTAL" entry removed', plot_features)
 
 def create_df_from_csv(filename):
     return pd.read_csv(filename)
@@ -221,11 +226,51 @@ print(df_enron_reloaded)
 #--- further explore the new dataset by looking into each feature:
 
 #--- Money related features:
-money_features = ['salary', 'total_payments', 'email_address', 'total_stock_value', 'expenses', 'exercised_stock_options', 'other', 'poi', 'restricted_stock', 'Name']
-
+money_features = ['salary', 'total_payments', 'bonus', 'deferred_income', 'total_stock_value', 
+    'expenses', 'exercised_stock_options', 'long_term_incentive', 'restricted_stock']
 #--- Email related features:
-email_features = ['email_address', 'from_poi_to_this_person', 'from_messages','from_this_person_to_poi','shared_receipt_with_poi','to_messages']
+email_features = ['email_address', 'from_poi_to_this_person','from_this_person_to_poi','from_messages',
+    'shared_receipt_with_poi','to_messages']
 
+#--- Explore money features:
+#--- Compare POI data vs non-POI data:
+
+print('\nComparisson of non-POI vs POI salaries:')
+print('=======================================:')
+
+#--- Extract pois salaries:
+pois_salaries = pd.DataFrame([], columns=['Name','Salary'])
+pois_salaries['Name'] = df_enron_reloaded.loc[df_enron_reloaded['poi']==True]['Name']
+pois_salaries['Salary'] = df_enron_reloaded.loc[df_enron_reloaded['poi']==True]['salary']
+
+#--- Compute IQR:
+Q1 = pois_salaries['Salary'].quantile(0.25)
+Q3 = pois_salaries['Salary'].quantile(0.75)
+poi_IQR = Q3 - Q1
+
+print('\nPOI salaries:\n', pois_salaries)
+print('\nPOI IQR=', poi_IQR)
+
+#--- Extract non-poi salaries:
+non_pois_salaries = pd.DataFrame([], columns=['Name','Salary'])
+non_pois_salaries['Name'] = df_enron_reloaded.loc[df_enron_reloaded['poi']==False]['Name']
+non_pois_salaries['Salary'] = df_enron_reloaded.loc[df_enron_reloaded['poi']==False]['salary']
+
+#--- Compute IQR:
+Q1 = non_pois_salaries['Salary'].quantile(0.25)
+Q3 = non_pois_salaries['Salary'].quantile(0.75)
+non_poi_IQR = Q3 - Q1
+print('\nNon-POI salaries:\n', non_pois_salaries)
+print('\nNon-POI IQR=', non_poi_IQR)
+
+#--- Plot IQRs:
+import seaborn
+
+df_plot = pois_salaries.copy()
+df_plot.join(non_pois_salaries, rsuffix='_nonpoi').boxplot()
+
+
+#--- Compare poi vs non-poi:
 
 ### Task 3: Create new feature(s)
 ### Store to my_dataset for easy export below.
