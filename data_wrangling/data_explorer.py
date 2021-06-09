@@ -38,6 +38,7 @@ class explorer:
     params = {}
     features = []
     feature_nan_count = {}
+    employee_nan_count = {}
 
     def __init__(self, data_dict):        
         '''
@@ -178,9 +179,15 @@ class explorer:
         # Calculate percentage of missing data (i.e. NaN)
         # for each feature
         df = self.enron_df
+        
         self.feature_nan_count = {}
+        self.employee_nan_count = {}
+        
         for feature_name in df:
             self.feature_nan_count[feature_name] = df[feature_name].isna().sum()
+
+        #--- determine number of NaN entries per employee:
+        print(df[df=='NaN'].sum(axis=1))
 
 
     # def display_features_removed(self):

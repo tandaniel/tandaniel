@@ -1,3 +1,4 @@
+import csv
 import os
 import pickle
 import sys
@@ -60,45 +61,49 @@ for k, v in sample_contents.items():
     dots = repeat_to_length('.', l)
     print('\t{0}: {1} {2}'.format(k, dots, v))
 
-#--- Save dataset as CSV
-import csv
+def convert_to_csv(data_dict):
+    #--- Save dataset as CSV
 
-# Create ouput directory if it doesn't already exist:
-outdirname = 'output'
-try:
-    os.makedirs('output')
-    print('\nDirectory "{}" created'.format(outdirname))
-except FileExistsError:
-    print('\nDirectory "{}" already exists - nothing done.'.format(outdirname))
+    # Create ouput directory if it doesn't already exist:
+    outdirname = 'output'
+    try:
+        os.makedirs('output')
+        print('\nDirectory "{}" created'.format(outdirname))
+    except FileExistsError:
+        print('\nDirectory "{}" already exists - nothing done.'.format(outdirname))
 
-csvfilename = outdirname + '/enron_data.csv'
+    csvfilename = outdirname + '/enron_data.csv'
 
-with open(csvfilename, 'w') as csv_file:
-    print('\nWriting data set to ../{}'.format(csvfilename))
-    writer = csv.writer(csv_file)
+    with open(csvfilename, 'w') as csv_file:
+        print('\nWriting data set to ../{}'.format(csvfilename))
+        writer = csv.writer(csv_file)
 
-    #--- create header:
-    header_line = ['Name']
+        #--- create header:
+        header_line = ['Name']
 
-    for name in data_dict.keys():
-        if name != 'TOTAL':
-            value_pairs = data_dict[name]
+        for name in data_dict.keys():
+            if name != 'TOTAL':
+                value_pairs = data_dict[name]
 
-            for feature_value in value_pairs.keys():
-                header_line.append(feature_value)
+                for feature_value in value_pairs.keys():
+                    header_line.append(feature_value)
 
-            break
+                break
 
-    writer.writerow(header_line)
+        writer.writerow(header_line)
 
-    for name in data_dict.keys():
-        line = []
-        line.append(name)
+        for name in data_dict.keys():
+            line = []
+            line.append(name)
 
-        for k, v in data_dict[name].items():
-            line.append(v)
+            for k, v in data_dict[name].items():
+                line.append(v)
 
-        writer.writerow(line)
+            writer.writerow(line)
+
+print('\nWrite dataset to csv file:')
+print('================================================')
+convert_to_csv(data_dict)
 
 print('\nSummary of information contained in the dataset:')
 print('================================================')
@@ -126,10 +131,10 @@ df_features_nan_counts['ratio'] = df_features_nan_counts['NaN count']/max_nan_co
 print(df_features_nan_counts.to_string(index=False))
 
 #--- list features with more than selected percentage (%) NaNs:
-perc = 0.4
-rslt_df = df_features_nan_counts.loc[df_features_nan_counts['ratio'] > perc]
+thresh_ratio = 0.4
+rslt_df = df_features_nan_counts.loc[df_features_nan_counts['ratio'] > thresh_ratio]
 nan_features = rslt_df['Feature'].tolist()
-print('\nFeatures with NaN > {} % will be excluded:'.format(perc*100.0))
+print('\nFeatures with NaN > {} % will be excluded:'.format(thresh_ratio*100.0))
 print(nan_features)
 
 selected_features = []
@@ -140,6 +145,31 @@ for feature in all_features:
         selected_features.append(feature)
 
 print('\nselected features:\n{}'.format(selected_features))
+
+
+#--- Calculate ratio of NaN entries in the dataset for each employee:
+print('\nNaN entries per employee in dataset:')
+print('============================================')
+df_employee_nan_counts = ((enron_df[all_features].isna()).sum(axis=1)).to_frame()
+df_employee_nan_counts['Name'] = df_employee_nan_counts.index
+df_employee_nan_counts.columns = ['NaN count', 'Name']
+df_employee_nan_counts = df_employee_nan_counts[['Name', 'NaN count']]
+df_employee_nan_counts['NaN %'] = (df_employee_nan_counts['NaN count'] / len(all_features))*100.
+df_employee_nan_counts.sort_values(by=['NaN count'], inplace=True)
+df_employee_nan_counts.reset_index(drop=True, inplace=True)
+print(df_employee_nan_counts)
+
+print('\nThe following employees have more than 90% NaN entries and will be ignored if non-POI:')
+empl_to_pop = df_employee_nan_counts.loc[df_employee_nan_counts['NaN %'] >90. , 'Name'].tolist()
+print(empl_to_pop)
+
+poi_list = eobj.get_poi_list()
+
+for empl in empl_to_pop:
+    if empl not in poi_list:
+        data_dict.pop(empl, 0 )
+
+
 
 
 ### Task 2: Remove outliers
@@ -177,20 +207,24 @@ data_dict.pop( 'TOTAL', 0 )
 show_data('"TOTAL" entry removed', plot_features)
 
 
-''' Further potential outliers will be identified for each
-    name entry in the dataset based on statistical
-    considerations (i.e. quartile approach):
-'''
 
-#--- (a) create dataset dictionary with the featureFormat method:
-data = featureFormat(data_dict, plot_features) #, sort_keys = '../tools/python2_lesson14_keys.pkl')
-labels, features = targetFeatureSplit(data)
-
-#--- (b) calculate quartile ranges and flag data outside Q2:
+def create_df_from_csv(filename):
+    return pd.read_csv(filename)
 
 
-#--- (c) assess outlier based on comparison with other entries:
+#--- create dataframe from updated dictionary dataset:
+convert_to_csv(data_dict)
+df_enron_reloaded = create_df_from_csv('output/enron_data.csv')
 
+print(df_enron_reloaded)
+
+#--- further explore the new dataset by looking into each feature:
+
+#--- Money related features:
+money_features = ['salary', 'total_payments', 'email_address', 'total_stock_value', 'expenses', 'exercised_stock_options', 'other', 'poi', 'restricted_stock', 'Name']
+
+#--- Email related features:
+email_features = ['email_address', 'from_poi_to_this_person', 'from_messages','from_this_person_to_poi','shared_receipt_with_poi','to_messages']
 
 
 ### Task 3: Create new feature(s)
