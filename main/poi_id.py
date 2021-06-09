@@ -264,10 +264,12 @@ print('\nNon-POI salaries:\n', non_pois_salaries)
 print('\nNon-POI IQR=', non_poi_IQR)
 
 #--- Plot IQRs:
-import seaborn
+import seaborn as sns
 
-df_plot = pois_salaries.copy()
-df_plot.join(non_pois_salaries, rsuffix='_nonpoi').boxplot()
+# sns.boxplot(x='poi', y='salary', data=df_enron_reloaded)
+# df_enron_reloaded.boxplot(column=['salary'])
+
+
 
 
 #--- Compare poi vs non-poi:
