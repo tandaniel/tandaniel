@@ -1,3 +1,4 @@
+import os
 import pickle
 import sys
 
@@ -39,7 +40,80 @@ def repeat_to_length(string_to_expand, length):
 #--- Explore dataset
 eobj = explorer(data_dict)
 parameters = eobj.get_dataset_parameters()
+enron_df = eobj.get_dataframe()
 
+#--- Show estatistics:
+print('\nDataset statistical information:')
+print('================================')
+enron_df.info()
+
+# #--- List people in dataset:
+# for k in data_dict.keys():
+#     print(k)
+
+#--- Show an example of dataset contents for POI Kenneth Lay:
+print('\nExample of data content for POI Kenneth Lay:')
+print('============================================')
+sample_contents = data_dict['LAY KENNETH L']
+for k, v in sample_contents.items():
+    l = 45 - len(k)
+    dots = repeat_to_length('.', l)
+    print('\t{0}: {1} {2}'.format(k, dots, v))
+
+#--- Save dataset as CSV
+import csv
+
+# Create ouput directory if it doesn't already exist:
+outdirname = 'output'
+try:
+    os.makedirs('output')
+    print('\nDirectory "{}" created'.format(outdirname))
+except FileExistsError:
+    print('\nDirectory "{}" already exists - nothing done.'.format(outdirname))
+
+csvfilename = outdirname + '/enron_data.csv'
+
+with open(csvfilename, 'w') as csv_file:
+    print('\nWriting data set to ../{}'.format(csvfilename))
+    writer = csv.writer(csv_file)
+
+    #--- create header:
+    header_line = ['Name']
+
+    for name in data_dict.keys():
+        if name != 'TOTAL':
+            value_pairs = data_dict[name]
+
+            for feature_value in value_pairs.keys():
+                header_line.append(feature_value)
+
+            break
+
+    writer.writerow(header_line)
+
+    for name in data_dict.keys():
+        line = []
+        line.append(name)
+
+        for k, v in data_dict[name].items():
+            line.append(v)
+
+        writer.writerow(line)
+
+print('\nSummary of information contained in the dataset:')
+print('================================================')
+dataset_params = eobj.get_dataset_parameters()
+
+for k,v in dataset_params.items():
+    if k != 'Features with NaN':
+        l = 45 - len(k)
+        dots = repeat_to_length('.', l)
+        print('\t{0}: {1} {2}'.format(k, dots, v))
+
+
+#--- Calculate ratio of NaN entries in the dataset for each feature:
+print('\nRatio of NaN entries per feature in dataset:')
+print('============================================')
 features_nan_counts = eobj.get_feature_nan_counts()
 df_features_nan_counts = pd.DataFrame(features_nan_counts.items())
 df_features_nan_counts.columns = ['Feature','NaN count']
@@ -47,64 +121,32 @@ df_features_nan_counts.sort_values(by=['NaN count'], inplace=True)
 df_features_nan_counts.reset_index(drop=True, inplace=True)
 
 max_nan_count = df_features_nan_counts.iloc[len(df_features_nan_counts)-1]['NaN count']
-print('Max NaN count: {}'.format(max_nan_count))
+print('\nMax NaN count: {}'.format(max_nan_count))
 df_features_nan_counts['ratio'] = df_features_nan_counts['NaN count']/max_nan_count
 print(df_features_nan_counts.to_string(index=False))
 
-dataset_params = eobj.get_dataset_parameters()
-
-for k,v in dataset_params.items():
-    if k != 'Features with NaN':
-        l = 45 - len(k)
-        dots = repeat_to_length('.', l)
-        print('\n\t{0}: {1} {2}'.format(k, dots, v))
-
 #--- list features with more than selected percentage (%) NaNs:
-perc = 0.75
+perc = 0.4
 rslt_df = df_features_nan_counts.loc[df_features_nan_counts['ratio'] > perc]
 nan_features = rslt_df['Feature'].tolist()
-print('\n\tFeatures with NaN > {} %:'.format(perc*100.0))
-print('\t\t', nan_features)
+print('\nFeatures with NaN > {} % will be excluded:'.format(perc*100.0))
+print(nan_features)
 
-#--- remove features with nan count exceeding threshold:
-# all_features = eobj.get_features()
+selected_features = []
+all_features = eobj.get_features()
 
-### add more features to features_list!
-features_list = ["poi", "salary", "bonus"]
-data = featureFormat(data_dict, features_list) #, sort_keys = '../tools/python2_lesson14_keys.pkl')
-labels, features = targetFeatureSplit(data)
+for feature in all_features:
+    if feature not in nan_features:
+        selected_features.append(feature)
 
+print('\nselected features:\n{}'.format(selected_features))
 
-
-
-def getFormattedFeaturesAndNameList(data_dict, features):
-    featureList = {}
-    nameList = {}
-    for feature in features:
-        featureList[feature] = []
-        nameList[feature] = []
-
-    for feature in features:
-        for name, value in data_dict.items():
-            for key, val in value.items():
-                if (key in features and val != 'NaN'):
-                    featureList[key].append(val)
-                    nameList[key].append(name)
-
-    return featureList, nameList
-
-featureList, nameList = getFormattedFeaturesAndNameList(data_dict, features_list)
-
-
-
-
-# selected_features = list(set(featureList) - set(nan_features))
-# suspected_outliers = eobj.findSuspectedOutliers(featureList)
 
 ### Task 2: Remove outliers
 
 #--- plot points
-#selected_features = ['salary', 'bonus']
+plot_features = ["poi", "salary", "bonus"]
+
 
 def show_data(title, features):
     ### read in data dictionary, convert to numpy array
@@ -127,12 +169,29 @@ def show_data(title, features):
     plt.ylabel(features[2].capitalize() )
     plt.show()
 
-show_data('All points', features_list)
+show_data('All points', plot_features)
 
 #--- remove 'TOTAL' point:
 data_dict.pop( 'TOTAL', 0 ) 
 
-show_data('"TOTAL" entry removed', features_list)
+show_data('"TOTAL" entry removed', plot_features)
+
+
+''' Further potential outliers will be identified for each
+    name entry in the dataset based on statistical
+    considerations (i.e. quartile approach):
+'''
+
+#--- (a) create dataset dictionary with the featureFormat method:
+data = featureFormat(data_dict, plot_features) #, sort_keys = '../tools/python2_lesson14_keys.pkl')
+labels, features = targetFeatureSplit(data)
+
+#--- (b) calculate quartile ranges and flag data outside Q2:
+
+
+#--- (c) assess outlier based on comparison with other entries:
+
+
 
 ### Task 3: Create new feature(s)
 ### Store to my_dataset for easy export below.

@@ -1,8 +1,8 @@
+import pickle
+import sys
+
 import numpy as np
 import pandas as pd
-
-import sys
-import pickle
 
 sys.path.append("../data_wrangling/")
 
@@ -128,6 +128,9 @@ class explorer:
         '''Return number of rows in Pandas DataFrame'''
         return (df.shape)[0]
 
+    def get_dataframe(self):
+        return self.enron_df
+
     def list_of_entries_with_nan(self, data_dict):       
 
         nans_dict = {}
@@ -145,24 +148,6 @@ class explorer:
             if nans_dict['nan_count'] > 0:
                 self.nans.append(nans_dict)
                 
-    def findSuspectedOutliers(self, feature_list):
-        #--- find potential outliers:
-        outliers = {}
-        for key in feature_list.keys():
-            outliers[key] = set()
-
-        for k, v in feature_list.items():
-            quant_1 = np.percentile(v, 25)
-            quant_3 = np.percentile(v, 75)
-            iqr = quant_3 - quant_1
-            btm = quant_1 - 10 * iqr
-            top = quant_3 + 10 * iqr
-
-            for p in v:
-                if ((p < btm) | (p > top)):
-                    outliers[key].add(p)
-        return outliers
-
     def get_poi_list(self):
         return self.pois
 
