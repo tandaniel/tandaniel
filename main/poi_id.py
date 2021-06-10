@@ -18,7 +18,7 @@ from feature_format import featureFormat, targetFeatureSplit
 
 from tester import dump_classifier_and_data
 
-### Task 1: Select what featu-res you'll use.
+### Task 1: Select what features you'll use.
 ### features_list is a list of strings, each of which is a feature name.
 ### The first feature must be "poi".
 # features_list = ['poi','salary'] 
