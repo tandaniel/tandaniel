@@ -1,5 +1,7 @@
 import pickle
 import sys
+import csv
+import os
 
 import numpy as np
 import pandas as pd
@@ -195,6 +197,50 @@ class explorer:
     
     # def filter_nans(self, percentage):
     #     pass
+
+    def convert_to_csv(self, data_dict, excluded_features = []):
+        #--- Save dataset as CSV
+
+        # Create ouput directory if it doesn't already exist:
+        outdirname = '../output'
+        try:
+            os.makedirs(outdirname)
+            print('\nDirectory "{}" created'.format(outdirname))
+        except FileExistsError:
+            print('\nDirectory "{}" already exists - nothing done.'.format(outdirname))
+
+        csvfilename = outdirname + '/enron_data.csv'
+
+        with open(csvfilename, 'w') as csv_file:
+            print('\nWriting data set to ../{}'.format(csvfilename))
+            writer = csv.writer(csv_file)
+
+            #--- create header:
+            header_line = ['Name']
+
+            for name in data_dict.keys():
+                if name != 'TOTAL':
+                    value_pairs = data_dict[name]
+
+                    for feature_value in value_pairs.keys():
+                        if feature_value not in excluded_features:
+                            header_line.append(feature_value)
+
+                    break
+
+            writer.writerow(header_line)
+
+            for name in data_dict.keys():
+                line = []
+                line.append(name)
+
+                for k, v in data_dict[name].items():
+                    if k not in excluded_features:
+                        line.append(v)
+
+                writer.writerow(line)
+
+
 
 if __name__ == '__main__':
     dataset_file = "../dataset/final_project_dataset.pkl"
