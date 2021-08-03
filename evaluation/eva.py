@@ -25,31 +25,35 @@ sys.path.append("tools/")
 from feature_format import featureFormat, targetFeatureSplit
 
 class evaluator:
-    evas = []
+    
+    evas = {}
     data_dict = {}
     feature_list = []
 
-    def __init__(self, dict, selected_features, name) -> None:
+    def __init__(self, dict, selected_features=None, name=None) -> None:
+
+        self.data_dict = dict
+
+        if selected_features!=None and name!=None:
+            self.add_eva(selected_features, name)
+
+    def add_eva(self, selected_features, name):
 
         nb_analysis = {}
         dt_analysis = {}
         kn_analysis = {}
 
-        self.data_dict = dict
         self.feature_list = selected_features
 
         nb_analysis = self.evaluate(GaussianNB())
         dt_analysis = self.evaluate(DecisionTreeClassifier())
         kn_analysis = self.evaluate(KNeighborsClassifier())
 
-        self.evas.append(
-            {
-            name:{
+        self.evas[name] = {
                 'GaussianNB': nb_analysis,
                 'DecisionTreeClassifier': dt_analysis,
                 'KNeighborsClassifier': kn_analysis
                 }
-            })
 
     def evaluate(self, classifier):
 
@@ -61,7 +65,8 @@ class evaluator:
         X = np.array(features)
         y = np.array(labels)
 
-        sss = StratifiedShuffleSplit(n_splits=10, test_size=0.3, random_state=42)
+        # sss = StratifiedShuffleSplit(n_splits=10, test_size=0.3, random_state=42)
+        sss = StratifiedShuffleSplit(n_splits=1000, test_size=0.3, random_state=42)
         
         features_train, features_test, labels_train, labels_test = train_test_split(X, y, test_size=0.33, random_state=42)
 
@@ -86,19 +91,34 @@ class evaluator:
         return eva_results
     
     def get_evas(self):
-        return self.evas    
+        return self.evas
+
+
+    def to_dataframe(self):
+
+        eva_nested_dict = self.evas
+        dfs = []
+        dfs.append(pd.DataFrame.from_dict({(i,j): eva_nested_dict[i][j] 
+                        for i in eva_nested_dict.keys() 
+                        for j in eva_nested_dict[i].keys()},
+                    orient='index'))
+        return dfs
 
 if __name__ == '__main__':
     data_dict = {}
-    feature_list = []
-
-    dataset_file = "./dataset/final_project_dataset.pkl"
+    dataset_file = "dataset/final_project_dataset.pkl"
 
     with open(dataset_file, "rb") as data_file:
         data_dict = pickle.load(data_file)
 
-    feature_list = ['poi', 'salary', 'fraction_to_poi', 'from_messages']
-    eva_obj = evaluator(data_dict, feature_list)
+    eva_list_1 = ['poi','salary','bonus','from_messages']
+    eva_list_2 = ['poi','bonus','exercised_stock_options','from_messages']
     
-    gnb_dict = eva_obj.get_nb_eva
-    print(gnb_dict)
+    eva_obj = evaluator(data_dict)
+
+    eva_obj.add_eva(eva_list_1, 'eva_set_1')
+    eva_obj.add_eva(eva_list_2, 'eva_set_2')
+
+    evas = eva_obj.get_evas()
+    dfs = eva_obj.to_dataframe()
+    print(dfs)
