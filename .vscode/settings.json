@@ -1,0 +1,7 @@
+{
+    "python.analysis.extraPaths": ["./data_wrangling/",
+        "./dataset/",
+        "./evaluation/",
+        "./tools/",
+        "./output/"]
+}

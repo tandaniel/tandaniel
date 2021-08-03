@@ -1,45 +1,62 @@
+import sys
+import os
+import numpy as np
+import pandas as pd
 
+import pickle
+
+# libraries for evaluation metrics:
+from sklearn.metrics import accuracy_score
+from sklearn.metrics import precision_score
+from sklearn.metrics import recall_score
+
+# model selection libraries:
+from sklearn.model_selection import StratifiedShuffleSplit
+from sklearn.model_selection import train_test_split
+
+# libraries for classifiers:
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.naive_bayes import GaussianNB
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.model_selection import GridSearchCV
+
+# UDACITY libraries:
+sys.path.append("tools/")
+from feature_format import featureFormat, targetFeatureSplit
 
 class evaluator:
-    
-    import sys
-    import os
-
-    # libraries for evaluation metrics:
-    from sklearn.metrics import accuracy_score
-    from sklearn.metrics import precision_score
-    from sklearn.metrics import recall_score
-
-    # model selection libraries:
-    from sklearn.model_selection import StratifiedShuffleSplit
-    from sklearn.model_selection import train_test_split
-
-    # libraries for classifiers:
-    from sklearn.tree import DecisionTreeClassifier
-    from sklearn.naive_bayes import GaussianNB
-    from sklearn.neighbors import KNeighborsClassifier
-    from sklearn.model_selection import GridSearchCV
-
-    # UDACITY libraries:
-    sys.path.append("../tools/")
-    from feature_format import featureFormat, targetFeatureSplit
-
+    evas = []
     data_dict = {}
-    nb_analysis = {}
-    dt_analysis = {}
-    kn_analysis = {}
+    feature_list = []
 
-    def __init__(self, dict, selected_features) -> None:
+    def __init__(self, dict, selected_features, name) -> None:
+
+        nb_analysis = {}
+        dt_analysis = {}
+        kn_analysis = {}
+
         self.data_dict = dict
+        self.feature_list = selected_features
 
-        self.nb_analysis = self.evaluator(GaussianNB(), selected_features, dict)
-        self.dt_analysis = self.evaluator(DecisionTreeClassifier(), selected_features, dict)
-        self.kn_analysis = self.evaluator(KNeighborsClassifier(), selected_features, dict)
+        nb_analysis = self.evaluate(GaussianNB())
+        dt_analysis = self.evaluate(DecisionTreeClassifier())
+        kn_analysis = self.evaluate(KNeighborsClassifier())
 
-    def evaluator(self, clasifier, features):
-        data = featureFormat(my_dataset, feature_list, sort_keys = True)
+        self.evas.append(
+            {
+            name:{
+                'GaussianNB': nb_analysis,
+                'DecisionTreeClassifier': dt_analysis,
+                'KNeighborsClassifier': kn_analysis
+                }
+            })
+
+    def evaluate(self, classifier):
+
+        eva_results = {}
+
+        data = featureFormat(self.data_dict, self.feature_list, sort_keys = True)
         labels, features = targetFeatureSplit(data)
-
         
         X = np.array(features)
         y = np.array(labels)
@@ -53,8 +70,35 @@ class evaluator:
         pred = clf.predict(features_test)
         
         if classifier == DecisionTreeClassifier():
-            return {'Accuracy': accuracy_score(labels_test,pred),'Precision': precision_score(labels_test,pred, average='micro'),
-                    'Recall': recall_score(labels_test,pred), 'Feature Importance': clf.feature_importances_}
-        
-        return {'Accuracy': accuracy_score(labels_test,pred),'Precision': precision_score(labels_test,pred, average='micro'),
-                'Recall': recall_score(labels_test,pred, average='micro')}
+            eva_results = {
+                'Accuracy': accuracy_score(labels_test,pred),
+                'Precision': precision_score(labels_test, pred, average='micro'),
+                'Recall': recall_score(labels_test,pred),
+                'Feature Importance': clf.feature_importances_
+                }
+        else:
+            eva_results = {
+                'Accuracy': accuracy_score(labels_test,pred),
+                'Precision': precision_score(labels_test, pred, average='micro'),
+                'Recall': recall_score(labels_test, pred, average='micro')
+                }
+
+        return eva_results
+    
+    def get_evas(self):
+        return self.evas    
+
+if __name__ == '__main__':
+    data_dict = {}
+    feature_list = []
+
+    dataset_file = "./dataset/final_project_dataset.pkl"
+
+    with open(dataset_file, "rb") as data_file:
+        data_dict = pickle.load(data_file)
+
+    feature_list = ['poi', 'salary', 'fraction_to_poi', 'from_messages']
+    eva_obj = evaluator(data_dict, feature_list)
+    
+    gnb_dict = eva_obj.get_nb_eva
+    print(gnb_dict)
