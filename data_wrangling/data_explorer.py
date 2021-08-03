@@ -240,6 +240,21 @@ class explorer:
 
                 writer.writerow(line)
 
+    def create_new_ratio_based_features(self, feat_i, feat_j, new_feat_name):
+        
+        for employee_name in self.enron_data:
+
+            fraction = 0.
+            data_point = self.enron_data[employee_name]
+
+            feat_i_value = data_point[feat_i]
+            feat_j_value = data_point[feat_j]
+            
+            if feat_i_value != 'NaN':
+                if feat_j_value != 'NaN':
+                    fraction = float(feat_i_value)/float(feat_j_value)
+                
+            self.enron_data[employee_name][new_feat_name] = fraction
 
 
 if __name__ == '__main__':
