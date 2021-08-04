@@ -55,7 +55,7 @@ class evaluator:
                 'KNeighborsClassifier': kn_analysis
                 }
 
-    def evaluate(self, classifier):
+    def evaluate(self, clf):
 
         eva_results = {}
 
@@ -65,27 +65,28 @@ class evaluator:
         X = np.array(features)
         y = np.array(labels)
 
-        # sss = StratifiedShuffleSplit(n_splits=10, test_size=0.3, random_state=42)
-        sss = StratifiedShuffleSplit(n_splits=1000, test_size=0.3, random_state=42)
-        
-        features_train, features_test, labels_train, labels_test = train_test_split(X, y, test_size=0.33, random_state=42)
+        features_train, features_test, labels_train, labels_test = train_test_split(X, y, test_size=0.3, random_state=42)
 
-        clf = classifier
         clf.fit(features_train, labels_train)
         pred = clf.predict(features_test)
         
-        if classifier == DecisionTreeClassifier():
+        '''
+        Precision = True Positive / (True Positive + False Positive)
+        Accuracy = (True Positive + True Negative) / (True Positive + False Positive + True Negative + False Negative)
+        '''
+
+        if str(type(clf)) == "<class 'sklearn.tree._classes.DecisionTreeClassifier'>":
             eva_results = {
-                'Accuracy': accuracy_score(labels_test,pred),
-                'Precision': precision_score(labels_test, pred, average='micro'),
-                'Recall': recall_score(labels_test,pred),
+                'Accuracy': accuracy_score(labels_test, pred),
+                'Precision': precision_score(labels_test, pred),
+                'Recall': recall_score(labels_test, pred),
                 'Feature Importance': clf.feature_importances_
                 }
         else:
             eva_results = {
-                'Accuracy': accuracy_score(labels_test,pred),
-                'Precision': precision_score(labels_test, pred, average='micro'),
-                'Recall': recall_score(labels_test, pred, average='micro')
+                'Accuracy': accuracy_score(labels_test, pred),
+                'Precision': precision_score(labels_test, pred),
+                'Recall': recall_score(labels_test, pred)
                 }
 
         return eva_results
